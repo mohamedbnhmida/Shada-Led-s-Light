@@ -1,5 +1,7 @@
 # Shada LED Light
 
+![Shada LED Light](docs/banner.png)
+
 A modern Flutter app that brings the **Shada LED's light Bluetooth smart bulb** back to life after the original app was removed from the Play Store.
 
 > **Unofficial app.** Not affiliated with, endorsed by or supported by Shada B.V. "Shada" and its logo belong to their owner and are used here only to identify the compatible product.
