@@ -7,11 +7,9 @@ A modern Flutter app that brings the **Shada LED's light Bluetooth smart bulb** 
 > **Unofficial app.** Not affiliated with, endorsed by or supported by Shada B.V. "Shada" and its logo belong to their owner and are used here only to identify the compatible product.
 
 <p align="center">
-  <img src="docs/screenshots/1.png" width="18%" />
-  <img src="docs/screenshots/2.png" width="18%" />
-  <img src="docs/screenshots/3.png" width="18%" />
-  <img src="docs/screenshots/4.png" width="18%" />
-  <img src="docs/screenshots/5.png" width="18%" />
+  <img src="docs/screenshots/1.png" width="30%" />
+  <img src="docs/screenshots/2.png" width="30%" />
+  <img src="docs/screenshots/3.png" width="30%" />
 </p>
 
 ## Download
