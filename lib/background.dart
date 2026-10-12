@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show Color;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -36,6 +37,10 @@ class Background {
   }
 
   static bool? _running;
+  static const _icon = NotificationIcon(
+    metaDataName: 'com.local.shada_bulb.service.NOTIFICATION_ICON', // white Shada mark (res/drawable-*/ic_stat_shada)
+    backgroundColor: Color(0xFF303E47),
+  );
   static String? _shown; // notification text currently displayed
 
   /// Starts the service when [needed], stops it otherwise. Called on every app change, so it stays cheap.
@@ -53,7 +58,7 @@ class Background {
     await (await SharedPreferences.getInstance()).setString('bt_reminder', jsonEncode([reminder.$1, reminder.$2]));
     if (running) {
       // It survived the app closing or started on boot; refresh the text (language may have changed).
-      await FlutterForegroundTask.updateService(notificationTitle: title, notificationText: text);
+      await FlutterForegroundTask.updateService(notificationTitle: title, notificationText: text, notificationIcon: _icon);
       return;
     }
     if (await FlutterForegroundTask.checkNotificationPermission() != NotificationPermission.granted) {
@@ -68,6 +73,7 @@ class Background {
       serviceTypes: [ForegroundServiceTypes.connectedDevice],
       notificationTitle: title,
       notificationText: text,
+      notificationIcon: _icon,
       callback: _startCallback,
     );
   }
@@ -105,7 +111,7 @@ class ScheduleRunner extends TaskHandler {
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     debugPrint('[ShadaBG] start ${starter.name}');
     try {
-      await _notes.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')));
+      await _notes.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('ic_stat_shada')));
     } catch (e) {
       debugPrint('[ShadaBG] notifications init failed $e');
     }
@@ -210,7 +216,11 @@ class ScheduleRunner extends TaskHandler {
       body: text[1],
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails('shada_bluetooth', 'Bluetooth reminder',
-            importance: Importance.defaultImportance, priority: Priority.defaultPriority, autoCancel: true),
+            icon: 'ic_stat_shada',
+            color: Color(0xFF303E47),
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+            autoCancel: true),
       ),
     );
   }

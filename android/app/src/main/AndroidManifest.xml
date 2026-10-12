@@ -46,6 +46,9 @@
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="connectedDevice"
             android:exported="false" />
+        <meta-data
+            android:name="com.local.shada_bulb.service.NOTIFICATION_ICON"
+            android:resource="@drawable/ic_stat_shada" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
