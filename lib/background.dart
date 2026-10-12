@@ -104,8 +104,14 @@ class ScheduleRunner extends TaskHandler {
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     debugPrint('[ShadaBG] start ${starter.name}');
-    await _notes.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')));
-    await _loadSession();
+    try {
+      await _notes.initialize(settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')));
+    } catch (e) {
+      debugPrint('[ShadaBG] notifications init failed $e');
+    }
+    // Never await: a looping scene never finishes, and the repeat events (schedules, reminder)
+    // only start once onStart has returned.
+    unawaited(_loadSession());
   }
 
   @override
@@ -177,9 +183,14 @@ class ScheduleRunner extends TaskHandler {
   final _notes = FlutterLocalNotificationsPlugin();
   DateTime? _btOffSince;
   static const _reminderId = 42;
+  // `--dart-define=BT_REMINDER_TEST=true` shortens both delays to test the reminder quickly.
+  static const _test = bool.fromEnvironment('BT_REMINDER_TEST');
+  static const _offBefore = _test ? Duration(minutes: 1) : Duration(minutes: 30);
+  static const _cooldown = _test ? Duration.zero : Duration(hours: 12);
 
   Future<void> _checkBluetooth(SharedPreferences p) async {
-    final on = await FlutterBluePlus.adapterState.first == BluetoothAdapterState.on;
+    final state = await FlutterBluePlus.adapterState.first;
+    final on = state == BluetoothAdapterState.on;
     final now = DateTime.now();
     if (on) {
       if (_btOffSince != null) await _notes.cancel(id: _reminderId);
@@ -187,11 +198,12 @@ class ScheduleRunner extends TaskHandler {
       return;
     }
     _btOffSince ??= now;
-    if (now.difference(_btOffSince!) < const Duration(minutes: 30)) return;
+    if (now.difference(_btOffSince!) < _offBefore) return;
     final last = DateTime.fromMillisecondsSinceEpoch(p.getInt('bt_reminded_at') ?? 0);
-    if (now.difference(last) < const Duration(hours: 12)) return;
+    if (now.difference(last) < _cooldown) return;
     final text = jsonDecode(p.getString('bt_reminder') ?? '["Bluetooth is off","Turn it on so your lamp schedules can run."]');
     await p.setInt('bt_reminded_at', now.millisecondsSinceEpoch);
+    debugPrint('[ShadaBG] showing Bluetooth reminder');
     await _notes.show(
       id: _reminderId,
       title: text[0],

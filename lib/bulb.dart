@@ -39,7 +39,7 @@ class BulbController extends ChangeNotifier {
     }
     final session = p.getString('session'); // a scene the service is still playing from before
     if (session != null) playingId = (jsonDecode(session) as Map)['sceneId'];
-    notifyListeners();
+    _notify();
     Background.listen(_onService);
 
     _conn = device.connectionState.listen((s) {
@@ -47,13 +47,18 @@ class BulbController extends ChangeNotifier {
         _setup();
       } else {
         _char = null;
-        notifyListeners();
+        _notify();
       }
     });
     _connectLoop();
   }
 
   bool _disposed = false;
+
+  // Async work (connect retries, service frames) can finish after dispose, e.g. when Bluetooth turns off.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
   String? error;
 
   // Direct connect with retry: Android's autoConnect background mode can take minutes to find the bulb.
@@ -64,7 +69,7 @@ class BulbController extends ChangeNotifier {
           await device.connect(license: License.nonprofit, timeout: const Duration(seconds: 10), mtu: null);
         } catch (e) {
           error = 'Connect: $e';
-          notifyListeners();
+          _notify();
         }
       }
       await Future.delayed(const Duration(seconds: 3));
@@ -75,11 +80,11 @@ class BulbController extends ChangeNotifier {
     try {
       _char = await unlockLamp(device);
       error = null;
-      notifyListeners();
+      _notify();
       _write();
     } catch (e) {
       error = 'Setup: $e';
-      notifyListeners();
+      _notify();
       await device.disconnect(); // _connectLoop retries
     }
   }
@@ -101,7 +106,7 @@ class BulbController extends ChangeNotifier {
         await writeTo(c, state.packet);
       } catch (e) {
         error = 'Write: $e';
-        notifyListeners();
+        _notify();
       }
     } while (_pending);
     _writing = false;
@@ -109,7 +114,7 @@ class BulbController extends ChangeNotifier {
 
   void _set(LightState s) {
     state = s;
-    notifyListeners();
+    _notify();
     _write();
   }
 
@@ -123,26 +128,26 @@ class BulbController extends ChangeNotifier {
   void stop() {
     playingId = null;
     Background.setSession(null);
-    notifyListeners();
+    _notify();
   }
 
   Future<void> play(Scene scene) async {
     await Background.setSession({'sceneId': scene.id});
     playingId = scene.id;
-    notifyListeners(); // HomePage starts the service if needed; it then reads the session
+    _notify(); // HomePage starts the service if needed; it then reads the session
   }
 
   // Frames from the service (scene playback, schedules) keep the screen in sync without writing to the lamp.
   void _onService(Map<String, dynamic> d) {
     state = LightState.fromJson(Map<String, dynamic>.from(d['state']));
     playingId = d['playing'];
-    notifyListeners();
+    _notify();
   }
 
   Scene? sceneById(String? id) => scenes.where((s) => s.id == id).firstOrNull;
 
   Future<void> save() async {
-    notifyListeners();
+    _notify();
     final p = await SharedPreferences.getInstance();
     await p.setString('scenes', jsonEncode(scenes));
     await p.setString('schedules', jsonEncode(schedules));
